@@ -100,6 +100,18 @@ final class RequestBuilder
     }
 
     /**
+     * curl_close() has no effect since PHP 8.0 and is deprecated since 8.5.
+     *
+     * @param resource $curl
+     */
+    private static function close($curl)
+    {
+        if (PHP_VERSION_ID < 80000) {
+            curl_close($curl);
+        }
+    }
+
+    /**
      * @param array $data
      * @param bool $emptyAsObject
      * @return string
@@ -163,10 +175,10 @@ final class RequestBuilder
 
         if ($response === false) {
             $error = curl_error($curl);
-            curl_close($curl);
+            self::close($curl);
             throw new RequestBuilderException($error, $responseCode, $uri);
         }
-        curl_close($curl);
+        self::close($curl);
 
         if ($raw && $responseCode === 200) {
             return $response;
