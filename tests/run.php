@@ -58,7 +58,7 @@ if ($base) {
     $r = $p->history();
     check('history() sends no cursor', $r['query'] === [] && $r['body'] === '{}');
     $r = $p->history(1);
-    check('history(1) (Cryptomus style) sends no cursor', $r['query'] === []);
+    check('history(1) (numeric page) sends no cursor', $r['query'] === []);
     $r = $p->history('eyJpZCI6MTI0ODh9', ['date_from' => '2026-10-01 00:00:00']);
     check('history($cursor) sends cursor in query', $r['query'] === ['cursor' => 'eyJpZCI6MTI0ODh9']);
     check('cursor not in signed body', $r['sign'] === md5(base64_encode($r['body']) . $key) && strpos($r['body'], 'cursor') === false);

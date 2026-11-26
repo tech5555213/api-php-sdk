@@ -125,8 +125,8 @@ final class RequestBuilder
     private function execute($method, $uri, $body, array $query, $raw = false)
     {
         $url = $this->baseUrl . ltrim($uri, '/');
-        // Cryptomus SDK compatibility: history($page = 1) passed a page number.
-        // Loamhill uses opaque cursors, so a numeric value means "first page".
+        // A numeric page value (e.g. history(1)) means the first page.
+        // Loamhill cursors are opaque strings, so a number is never a valid cursor.
         if (isset($query['cursor']) && preg_match('/^\d+$/', (string) $query['cursor'])) {
             unset($query['cursor']);
         }
@@ -198,7 +198,7 @@ final class RequestBuilder
             throw new RequestBuilderException($message, $responseCode, $uri, $errors);
         }
 
-        // Same as the Cryptomus SDK: an empty result means success and returns true.
+        // An empty result means success and returns true.
         if (!empty($json['result'])) {
             return $json['result'];
         }
