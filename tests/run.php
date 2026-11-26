@@ -1,7 +1,7 @@
 <?php
 // Offline checks: signing and webhook verification. Run: php tests/run.php
 
-require __DIR__ . '/../vendor/autoload.php';
+require is_file(__DIR__ . '/../vendor/autoload.php') ? __DIR__ . '/../vendor/autoload.php' : __DIR__ . '/autoload.php';
 
 use Loamhill\Api\RequestBuilder;
 use Loamhill\Api\Webhook;
@@ -49,5 +49,37 @@ $payout = ['type' => 'payout', 'uuid' => 'x', 'status' => 'paid'];
 $payout['sign'] = md5(base64_encode(json_encode($payout, JSON_UNESCAPED_UNICODE)) . 'payout-key');
 check('parse() picks payout key', Webhook::parse($key, 'payout-key', json_encode($payout)) !== null);
 check('parse() payout without payout key', Webhook::parse($key, null, json_encode($payout)) === null);
+
+// --- HTTP behaviour against tests/fake-api.php (php -S 127.0.0.1:8765 tests/fake-api.php)
+$base = getenv('LOAMHILL_FAKE_API');
+if ($base) {
+    $p = \Loamhill\Api\Client::payment($key, 'm-uuid', $base);
+
+    $r = $p->history();
+    check('history() sends no cursor', $r['query'] === [] && $r['body'] === '{}');
+    $r = $p->history(1);
+    check('history(1) (Cryptomus style) sends no cursor', $r['query'] === []);
+    $r = $p->history('eyJpZCI6MTI0ODh9', ['date_from' => '2026-10-01 00:00:00']);
+    check('history($cursor) sends cursor in query', $r['query'] === ['cursor' => 'eyJpZCI6MTI0ODh9']);
+    check('cursor not in signed body', $r['sign'] === md5(base64_encode($r['body']) . $key) && strpos($r['body'], 'cursor') === false);
+    check('merchant header', $r['merchant'] === 'm-uuid');
+
+    $r = \Loamhill\Api\Client::payout($key, 'm-uuid', $base)->priority(['currency_code' => 'USDT', 'network_code' => 'tron']);
+    check('GET signs empty string', $r['method'] === 'GET' && $r['body'] === '' && $r['sign'] === md5($key));
+
+    $r = \Loamhill\Api\Client::user($key, 'u-id', $base)->walletAddress('USDT', 'tron');
+    check('user API: userId header + signed GET body', $r['userId'] === 'u-id' && $r['sign'] === md5(base64_encode($r['body']) . $key));
+
+    $rb = new RequestBuilder($key, 'm-uuid', RequestBuilder::AUTH_MERCHANT, $base);
+    check('empty result returns true', $rb->sendRequest('v1/empty') === true);
+    try {
+        $rb->sendRequest('v1/fail');
+        check('422 throws', false);
+    } catch (\Loamhill\Api\RequestBuilderException $e) {
+        check('422 throws with errors', $e->getCode() === 422 && isset($e->getErrors()['order_id']));
+    }
+} else {
+    echo "skip HTTP tests (set LOAMHILL_FAKE_API, see composer test)" . PHP_EOL;
+}
 
 exit($fail ? 1 : 0);

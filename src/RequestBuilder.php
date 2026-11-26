@@ -125,6 +125,11 @@ final class RequestBuilder
     private function execute($method, $uri, $body, array $query, $raw = false)
     {
         $url = $this->baseUrl . ltrim($uri, '/');
+        // Cryptomus SDK compatibility: history($page = 1) passed a page number.
+        // Loamhill uses opaque cursors, so a numeric value means "first page".
+        if (isset($query['cursor']) && preg_match('/^\d+$/', (string) $query['cursor'])) {
+            unset($query['cursor']);
+        }
         $query = array_filter($query, function ($value) {
             return $value !== null && $value !== '';
         });
@@ -193,10 +198,15 @@ final class RequestBuilder
             throw new RequestBuilderException($message, $responseCode, $uri, $errors);
         }
 
-        if (array_key_exists('result', $json)) {
+        // Same as the Cryptomus SDK: an empty result means success and returns true.
+        if (!empty($json['result'])) {
             return $json['result'];
         }
 
-        return $json;
+        if (!array_key_exists('result', $json) && !array_key_exists('state', $json)) {
+            return $json; // public endpoints that answer without the envelope
+        }
+
+        return true;
     }
 }

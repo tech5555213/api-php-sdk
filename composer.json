@@ -2,7 +2,14 @@
   "name": "loamhill/api-php-sdk",
   "description": "PHP SDK for the Loamhill crypto payment API",
   "type": "library",
-  "keywords": ["loamhill", "crypto", "payments", "payouts", "sdk", "api"],
+  "keywords": [
+    "loamhill",
+    "crypto",
+    "payments",
+    "payouts",
+    "sdk",
+    "api"
+  ],
   "license": "MIT",
   "minimum-stability": "stable",
   "require": {
@@ -16,6 +23,6 @@
     }
   },
   "scripts": {
-    "test": "php tests/run.php"
+    "test": "sh tests/run.sh"
   }
 }

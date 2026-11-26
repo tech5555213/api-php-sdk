@@ -10,6 +10,24 @@ composer require loamhill/api-php-sdk
 
 Requires PHP 7.0+ with `curl` and `json`.
 
+## Migrating from cryptomus/api-php-sdk
+
+The method names and arguments are the same: `create`, `info`, `services`, `history`, `balance`, `reSendNotifications`, `createWallet`, `payout->create`, `payout->info`. Here is what you need to change:
+
+1. Replace the package:
+   ```bash
+   composer remove cryptomus/api-php-sdk
+   composer require loamhill/api-php-sdk
+   ```
+2. Replace the namespace `Cryptomus\Api` with `Loamhill\Api` (in `Client::...` calls and `catch (RequestBuilderException $e)`).
+3. Use the merchant ID, Payment API key and Payout API key from your Loamhill dashboard.
+4. Webhook verification code keeps working with the Loamhill key. If you allowlist IPs, add `91.216.220.24`.
+
+Compatibility notes:
+- `history($page)` still accepts a page number: a numeric value means the first page. To get further pages, pass `paginate.nextCursor`.
+- As in the Cryptomus SDK, a method returns `true` when the API answers with an empty `result`.
+- Unlike the Cryptomus SDK, every non-200 response throws `RequestBuilderException`, even one without `message` or `errors`.
+
 ## Authorization
 
 Every merchant has two keys, both on the merchant's API page in the Business dashboard:
@@ -184,7 +202,7 @@ http_response_code(200); // answer within 40 seconds, process asynchronously
 ## Tests
 
 ```bash
-composer install
+composer install  # optional: tests fall back to tests/autoload.php
 composer test
 ```
 
